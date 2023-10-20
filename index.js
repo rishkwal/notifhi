@@ -4,7 +4,6 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const axios = require('axios');
 const sendEmail = require ('./services/email')
-const sendWhatsApp = require('./services/whatsApp')
 require('dotenv').config()
 
 app.use(cors())
@@ -44,10 +43,6 @@ const sendSlackMessage = (message) => {
 
 const sendEmailNotif = (subject, message) => {
     sendEmail(subject, message)
-}
-
-const sendWhatsAppMessage = (message, phoneNumber) => {
-    sendWhatsApp(message, phoneNumber)
 }
 
 app.listen(3000, () => {
