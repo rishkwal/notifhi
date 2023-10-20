@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const axios = require('axios');
 const sendEmail = require ('./services/email')
 require('dotenv').config()
+const db = require('./models/db')
 
 app.use(cors())
 app.use(bodyParser.json())
