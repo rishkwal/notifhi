@@ -1,3 +1,6 @@
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
+const { uploadToSpheron } = require('./storage'); // Import the function
 const express = require('express');
 const app = express()
 const cors = require('cors');
@@ -93,7 +96,7 @@ app.post('/webhook', (req, res) => {
     //Code to store the notification media in Spheron DB and 
 })
 
-app.post('/sendNotification', async (req, res) => {
+app.post('/sendNotification', upload.single('file'), async (req, res) => {
     const { message, config } = req.body;
     if (!config) {
         res.status(400).send('No config provided.');
@@ -102,6 +105,17 @@ app.post('/sendNotification', async (req, res) => {
     if (!message) {
         res.status(400).send('No message provided.');
         return;
+    }
+    if (req.file) {
+        try {
+            const filePath = req.file.path;
+            const uploadResponse = await uploadToSpheron(filePath);
+
+            console.log(uploadResponse);
+        } catch (error) {
+            res.status(500).send('Failed to upload file.');
+            return;
+        }
     }
     if (config.discord) await sendDiscordMessage(message);
     if (config.telegram) await sendTelegramMessage(message);
