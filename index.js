@@ -89,45 +89,60 @@ const listSlackChannelsFromDB = async () => {
     return subscriber.subscribers.slack;
 }
 
-app.post('/sendNotification', (req, res) => {
+app.post('/webhook', (req, res) => {
+    //Code to store the notification media in Spheron DB and 
+})
+
+app.post('/sendNotification', async (req, res) => {
     const { message, config } = req.body;
-    if (config.discord) sendDiscordMessage(message);
-    if (config.telegram) sendTelegramMessage(message);
-    if (config.slack) sendSlackMessage(message);
-    if (config.email) sendEmailNotif('Notification Subject', message);
+    if (!config) {
+        res.status(400).send('No config provided.');
+        return;
+    }
+    if (!message) {
+        res.status(400).send('No message provided.');
+        return;
+    }
+    if (config.discord) await sendDiscordMessage(message);
+    if (config.telegram) await sendTelegramMessage(message);
+    if (config.slack) await sendSlackMessage(message);
+    if (config.email) await sendEmailNotif('Notification Subject', message);
     res.send('Notifications sent.');
 });
 
-const sendDiscordMessage = (message, discordUrls) => {
-    discordUrls.forEach( url => {
-        axios.post(url, { content: message });
+const sendDiscordMessage = async (message) => {
+    console.log(`sending message: ${message}`)
+    const discordUrls = await listDiscordChannelsFromDB();
+    discordUrls.forEach( async (url) => {
+        await axios.post(url, { content: message });
     });
 }
 
 //Write a function that sends a message to a Discord Channel via the Discord Webhook API
-app.post('/addDiscordChannel', (req, res) => {
+app.post('/discord/add', (req, res) => {
     const { channel } = req.body;
     addDiscordChannelToDB(channel)
         .then(() => res.send('Channel added.'))
         .catch(error => res.status(500).send(error.message));
 });
 
-app.post('/removeDiscordChannel', (req, res) => {
+app.post('/discord/remove', (req, res) => {
     const { channel } = req.body;
     removeDiscordChannelFromDB(channel)
         .then(() => res.send('Channel removed.'))
         .catch(error => res.status(500).send(error.message));
 });
 
-app.get('/listDiscordChannels', (req, res) => {
+app.get('/discord/list', (req, res) => {
     listDiscordChannelsFromDB()
         .then(channels => res.send(channels))
         .catch(error => res.status(500).send(error.message));
 });
 
-const sendTelegramMessage = (message, chatIds) => {
-    const telegramUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`
-    chatIds.forEach( chatId => {
+const sendTelegramMessage = async (message) => {
+    const telegramUrl = await `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`
+    const channels = await listTelegramChannelsFromDB()
+    channels.forEach( chatId => {
     axios.post(telegramUrl, {
         chat_id: chatId,
         text: message
@@ -135,55 +150,56 @@ const sendTelegramMessage = (message, chatIds) => {
     })
 }
 
-app.post('/addTelegramChannel', (req, res) => {
+app.post('/telegram/add', (req, res) => {
     const { channel } = req.body;
     addTelegramChannelToDB(channel)
         .then(() => res.send('Channel added.'))
         .catch(error => res.status(500).send(error.message));
 });
 
-app.post('/removeTelegramChannel', (req, res) => {
+app.post('/telegram/remove', (req, res) => {
     const { channel } = req.body;
     removeTelegramChannelFromDB(channel)
         .then(() => res.send('Channel removed.'))
         .catch(error => res.status(500).send(error.message));
 });
 
-app.get('/listTelegramChannels', (req, res) => {
+app.get('/telegram/list', (req, res) => {
     listTelegramChannelsFromDB()
         .then(channels => res.send(channels))
         .catch(error => res.status(500).send(error.message));
 });
 
-const sendSlackMessage = (message, slackUrls) => {
-    slackUrls.forEach( url => {
-        axios.post(url, { text: message });
+const sendSlackMessage = async (message) => {
+    const channels = await listSlackChannelsFromDB()
+    channels.forEach( async url => {
+        await axios.post(url, { text: message });
     })
 }
 
-app.post('/addSlackChannel', (req, res) => {
+app.post('/slack/add', (req, res) => {
     const { channel } = req.body;
     addSlackChannelToDB(channel)
         .then(() => res.send('Channel added.'))
         .catch(error => res.status(500).send(error.message));
 });
 
-app.post('/removeSlackChannel', (req, res) => {
+app.post('/slack/remove', (req, res) => {
     const { channel } = req.body;
     removeSlackChannelFromDB(channel)
         .then(() => res.send('Channel removed.'))
         .catch(error => res.status(500).send(error.message));
 });
 
-app.get('/listSlackChannels', (req, res) => {
+app.get('/slack/list', (req, res) => {
     listSlackChannelsFromDB()
         .then(channels => res.send(channels))
         .catch(error => res.status(500).send(error.message));
 });
 
-const sendEmailNotif = (subject, message, emails) => {
-    emails.forEach( email => {
-        sendEmail(subject, message, email)
+const sendEmailNotif = async (subject, message, emails) => {
+    emails.forEach( async email => {
+        await sendEmail(subject, message, email)
     })
 }
 
